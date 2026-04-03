@@ -1,0 +1,23 @@
+name: clinical_triage_env
+version: 0.1.0
+description: >
+  A real-world medical triage RL environment where an AI agent learns to
+  classify patient severity, form differential diagnoses, and allocate
+  critical care resources under uncertainty.
+author: ""
+tasks:
+  - name: single_symptom_triage
+    difficulty: easy
+    description: Classify a single-complaint patient into emergent/urgent/non-urgent
+    max_steps: 1
+  - name: differential_diagnosis
+    difficulty: medium
+    description: Propose differential diagnoses and next steps for a complex presentation
+    max_steps: 1
+  - name: icu_resource_allocation
+    difficulty: hard
+    description: Allocate the single available ICU bed among three critical patients
+    max_steps: 1
+action_space: "PatientAction (Pydantic JSON)"
+obs_space: "TriageObservation (Pydantic JSON)"
+reward_range: [-1.0, 1.0]
