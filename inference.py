@@ -70,9 +70,9 @@ def main():
     print("=== ClinicalTriageEnv Baseline Inference ===\n")
     scores = {}
 
+    obs = call_env("/reset")
     for task_idx in range(3):
         print(f"--- Task {task_idx + 1} ---")
-        obs   = call_env("/reset")
         print(f"Task: {obs['task_name']}")
 
         action = agent_act(obs)
@@ -86,6 +86,8 @@ def main():
                 feedback = result[key].get("feedback", "")
                 print(f"Score: {score:.2f}  |  {feedback}")
                 break
+        
+        obs = result  # The result from /step is the next observation
 
     print("\n=== Final Scores ===")
     for task, score in scores.items():
