@@ -24,8 +24,10 @@ class ClinicalEnvironment:
         self._task_index: int = 0
 
     def reset(self) -> TriageObservation:
-        self._task_index = 0
-        return self._start_task()
+        obs = self._start_task()
+        # Increment so the next /reset call yields the next task in the sequence
+        self._task_index = (self._task_index + 1) % len(TASK_SEQUENCE)
+        return obs
 
     def _start_task(self) -> TriageObservation:
         task = TASK_SEQUENCE[self._task_index]
@@ -113,11 +115,6 @@ class ClinicalEnvironment:
         self._state.last_reward_breakdown = reward
         self._state.task_scores[task.value] = reward.total
         self._state.is_done = True
-
-        # Auto-advance to next task if available
-        self._task_index += 1
-        if self._task_index < len(TASK_SEQUENCE):
-            self._start_task()
 
         return obs
 

@@ -4,6 +4,9 @@ Runs the agent against all 3 tasks and prints scores.
 Must complete in < 20 min on 2 vCPU / 8 GB RAM.
 """
 import os, json
+from dotenv import load_dotenv
+load_dotenv()
+
 from openai import OpenAI
 import requests
 
@@ -47,17 +50,28 @@ def agent_act(obs: dict) -> dict:
                   '"priority_rank": 1, "justification": "..."}], '
                   '"overall_reasoning": "...", "cited_guidelines": []}}')
 
-    resp = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": (
-                f"Patient observation:\n{content}\n\n"
-                f"Respond with this exact JSON structure:\n{schema}"
-            )},
-        ],
-        temperature=0.0,
-    )
+    import time
+    from openai import RateLimitError
+    for attempt in range(5):
+        try:
+            resp = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user",   "content": (
+                        f"Patient observation:\n{content}\n\n"
+                        f"Respond with this exact JSON structure:\n{schema}"
+                    )},
+                ],
+                temperature=0.0,
+            )
+            break
+        except RateLimitError:
+            wait_time = (2 ** attempt)
+            print(f"Rate limited. Retrying in {wait_time}s...")
+            time.sleep(wait_time)
+            if attempt == 4:
+                raise
     text = resp.choices[0].message.content.strip()
     # Strip markdown code fences if present
     if text.startswith("```"):
@@ -70,9 +84,9 @@ def main():
     print("=== ClinicalTriageEnv Baseline Inference ===\n")
     scores = {}
 
-    obs = call_env("/reset")
     for task_idx in range(3):
         print(f"--- Task {task_idx + 1} ---")
+        obs   = call_env("/reset")
         print(f"Task: {obs['task_name']}")
 
         action = agent_act(obs)
@@ -86,8 +100,6 @@ def main():
                 feedback = result[key].get("feedback", "")
                 print(f"Score: {score:.2f}  |  {feedback}")
                 break
-        
-        obs = result  # The result from /step is the next observation
 
     print("\n=== Final Scores ===")
     for task, score in scores.items():
