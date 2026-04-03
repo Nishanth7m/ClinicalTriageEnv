@@ -1,3 +1,12 @@
+---
+title: ClinicalTriageEnv
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+---
+
 # ClinicalTriageEnv
 
 A real-world OpenEnv RL environment for medical triage decision-making.
