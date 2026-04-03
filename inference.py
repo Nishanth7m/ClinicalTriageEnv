@@ -28,6 +28,10 @@ def call_env(endpoint: str, payload: dict = None):
         r = requests.post(f"{ENV_URL}{endpoint}", json=payload, timeout=60)
     else:
         r = requests.post(f"{ENV_URL}{endpoint}", timeout=60)
+    
+    if r.status_code >= 400:
+        print(f"\n[SERVER ERROR {r.status_code}] {r.text}\n")
+    
     r.raise_for_status()
     return r.json()
 
