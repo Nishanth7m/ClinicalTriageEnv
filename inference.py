@@ -1,37 +1,35 @@
 """
-Baseline inference script.
-Runs the agent against all 3 tasks and prints scores.
-Must complete in < 20 min on 2 vCPU / 8 GB RAM.
+Baseline inference script for ClinicalTriageEnv.
+Structured for Meta PyTorch Hackathon automated evaluation.
 """
-import os, json
-from dotenv import load_dotenv
-load_dotenv()
-
-from openai import OpenAI
+import os
+import json
+import time
 import requests
+from dotenv import load_dotenv
+from openai import OpenAI, RateLimitError
 
+# 1. Load configuration
+load_dotenv()
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME   = os.environ.get("MODEL_NAME", "gpt-4o-mini")
 HF_TOKEN     = os.environ.get("HF_TOKEN", "")
-ENV_URL      = os.environ.get("ENV_URL", "http://localhost:7860")
+ENV_URL      = os.environ.get("ENV_URL", "https://nishanthdev7-clinicaltriageenv.hf.space")
+OPENAI_KEY   = os.environ.get("OPENAI_API_KEY", "")
 
-client = OpenAI(api_key=HF_TOKEN or os.environ.get("OPENAI_API_KEY", ""),
-                base_url=API_BASE_URL)
+# 2. Initialize Client
+client = OpenAI(api_key=HF_TOKEN or OPENAI_KEY, base_url=API_BASE_URL)
 
 SYSTEM_PROMPT = """You are an expert emergency medicine physician.
-You will receive a patient observation in JSON format.
 Respond ONLY with a valid JSON object matching the required action schema.
 Do not add any prose outside the JSON."""
 
 def call_env(endpoint: str, payload: dict = None):
+    url = f"{ENV_URL.rstrip('/')}{endpoint}"
     if payload:
-        r = requests.post(f"{ENV_URL}{endpoint}", json=payload, timeout=60)
+        r = requests.post(url, json=payload, timeout=60)
     else:
-        r = requests.post(f"{ENV_URL}{endpoint}", timeout=60)
-    
-    if r.status_code >= 400:
-        print(f"\n[SERVER ERROR {r.status_code}] {r.text}\n")
-    
+        r = requests.post(url, timeout=60)
     r.raise_for_status()
     return r.json()
 
@@ -40,76 +38,62 @@ def agent_act(obs: dict) -> dict:
     content   = json.dumps(obs, indent=2)
 
     if task_name == "single_symptom_triage":
-        schema = ('{"task1": {"triage_level": "emergent|urgent|non_urgent", '
-                  '"rationale": "...", "cited_guideline": "optional"}}')
+        schema = '{"task1": {"triage_level": "emergent|urgent|non_urgent", "rationale": "..."}}'
     elif task_name == "differential_diagnosis":
-        schema = ('{"task2": {"primary_diagnosis": "...", '
-                  '"differential_diagnoses": ["..."], '
-                  '"recommended_actions": ["..."], '
-                  '"triage_level": "emergent|urgent|non_urgent", '
-                  '"reasoning": "...", "cited_guidelines": []}}')
+        schema = '{"task2": {"primary_diagnosis": "...", "triage_level": "emergent", "reasoning": "..."}}'
     else:
-        schema = ('{"task3": {"allocation_decisions": ['
-                  '{"patient_id": "...", "allocated_icu": true/false, '
-                  '"priority_rank": 1, "justification": "..."}], '
-                  '"overall_reasoning": "...", "cited_guidelines": []}}')
+        schema = '{"task3": {"allocation_decisions": [{"patient_id": "P001", "allocated_icu": true, "priority_rank": 1, "justification": "..."}]}}'
 
-    import time
-    from openai import RateLimitError
-    for attempt in range(5):
+    for attempt in range(3):
         try:
             resp = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user",   "content": (
-                        f"Patient observation:\n{content}\n\n"
-                        f"Respond with this exact JSON structure:\n{schema}"
-                    )},
+                    {"role": "user",   "content": f"Observation: {content}\n\nSchema: {schema}"},
                 ],
                 temperature=0.0,
             )
-            break
-        except RateLimitError:
-            wait_time = (2 ** attempt)
-            print(f"Rate limited. Retrying in {wait_time}s...")
-            time.sleep(wait_time)
-            if attempt == 4:
-                raise
-    text = resp.choices[0].message.content.strip()
-    # Strip markdown code fences if present
-    if text.startswith("```"):
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-    return json.loads(text)
+            text = resp.choices[0].message.content.strip()
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0]
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0]
+            return json.loads(text)
+        except (RateLimitError, json.JSONDecodeError):
+            time.sleep(1)
+    return {}
 
 def main():
-    print("=== ClinicalTriageEnv Baseline Inference ===\n")
-    scores = {}
+    # REQUIRED BY JUDGES: Start Tag
+    print("[START]")
+    
+    tasks = ["single_symptom_triage", "differential_diagnosis", "icu_resource_allocation"]
+    
+    for task_name in tasks:
+        try:
+            # Reset the environment
+            obs = call_env("/reset")
+            # Get the action from the LLM
+            action = agent_act(obs)
+            # Step the environment
+            result = call_env("/step", action)
 
-    for task_idx in range(3):
-        print(f"--- Task {task_idx + 1} ---")
-        obs   = call_env("/reset")
-        print(f"Task: {obs['task_name']}")
+            # Extract score from the result
+            score = 0.0
+            for key in ["task1", "task2", "task3"]:
+                if result.get(key) and "reward" in result[key]:
+                    score = result[key]["reward"].get("total", 0.0)
+                    break
+            
+            # REQUIRED BY JUDGES: Structured Step Log
+            print(f"[STEP] task_name={task_name} score={score:.2f}")
 
-        action = agent_act(obs)
-        result = call_env("/step", action)
+        except Exception:
+            print(f"[STEP] task_name={task_name} score=0.00")
 
-        # Extract reward from whichever task field is populated
-        for key in ["task1", "task2", "task3"]:
-            if result.get(key) and result[key].get("reward"):
-                score = result[key]["reward"]["total"]
-                scores[obs["task_name"]] = score
-                feedback = result[key].get("feedback", "")
-                print(f"Score: {score:.2f}  |  {feedback}")
-                break
-
-    print("\n=== Final Scores ===")
-    for task, score in scores.items():
-        print(f"  {task}: {score:.2f}")
-    avg = sum(scores.values()) / len(scores) if scores else 0
-    print(f"  Average: {avg:.2f}")
+    # REQUIRED BY JUDGES: End Tag
+    print("[END]")
 
 if __name__ == "__main__":
     main()
