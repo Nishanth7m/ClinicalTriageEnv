@@ -9,9 +9,9 @@ class TriageLevel(str, Enum):
     NON_URGENT = "non_urgent"
 
 class TaskName(str, Enum):
-    EMERGENCY_TRIAGE = "emergency_triage"
-    URGENT_TRIAGE    = "urgent_triage"
-    ROUTINE_TRIAGE   = "routine_triage"
+    SINGLE_SYMPTOM_TRIAGE   = "single_symptom_triage"
+    DIFFERENTIAL_DIAGNOSIS  = "differential_diagnosis"
+    ICU_RESOURCE_ALLOCATION = "icu_resource_allocation"
 
 class VitalSigns(BaseModel):
     heart_rate_bpm:       int   = Field(..., ge=0, le=300)
@@ -52,11 +52,8 @@ class RewardBreakdown(BaseModel):
     def compute_total(self) -> float:
         raw = (self.triage_accuracy + self.emergent_penalty
                + self.guideline_bonus + self.reasoning_quality)
-        # Clip to [-1, 1] first, then rescale to (0.01, 0.99) so the
-        # validator never sees an exact 0 or 1 boundary value.
-        clipped = max(-1.0, min(1.0, raw))
-        # Map [-1, 1] → [0.01, 0.99]
-        self.total = round(0.01 + (clipped + 1.0) * 0.49, 4)
+        # Clip to strictly (0.001, 0.999) per updated hackathon rules
+        self.total = max(0.001, min(0.999, raw))
         return self.total
 
 class Task1Action(BaseModel):

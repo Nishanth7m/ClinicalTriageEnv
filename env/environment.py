@@ -11,9 +11,9 @@ from env.scenarios import get_task1_scenario, get_task2_scenario, get_task3_scen
 from env.graders import grade_task1, grade_task2, grade_task3
 
 TASK_SEQUENCE = [
-    TaskName.EMERGENCY_TRIAGE,
-    TaskName.URGENT_TRIAGE,
-    TaskName.ROUTINE_TRIAGE,
+    TaskName.SINGLE_SYMPTOM_TRIAGE,
+    TaskName.DIFFERENTIAL_DIAGNOSIS,
+    TaskName.ICU_RESOURCE_ALLOCATION,
 ]
 
 class OpenEnv:
@@ -36,7 +36,7 @@ class OpenEnv:
     def _start_task(self) -> TriageObservation:
         task = TASK_SEQUENCE[self._task_index]
 
-        if task == TaskName.EMERGENCY_TRIAGE:
+        if task == TaskName.SINGLE_SYMPTOM_TRIAGE:
             patient, gold = get_task1_scenario()
             self._current_patient = patient
             self._gold_label = gold
@@ -45,7 +45,7 @@ class OpenEnv:
                 task1=Task1Observation(patient=patient)
             )
 
-        elif task == TaskName.URGENT_TRIAGE:
+        elif task == TaskName.DIFFERENTIAL_DIAGNOSIS:
             patient, gold = get_task2_scenario()
             self._current_patient = patient
             self._gold_label = gold
@@ -54,7 +54,7 @@ class OpenEnv:
                 task2=Task2Observation(patient=patient)
             )
 
-        else:  # ROUTINE_TRIAGE
+        else:  # ICU_RESOURCE_ALLOCATION
             patients, gold = get_task3_scenario()
             self._current_patient = patients
             self._gold_label = gold
@@ -79,7 +79,7 @@ class OpenEnv:
 
         task = self._state.current_task
 
-        if task == TaskName.EMERGENCY_TRIAGE:
+        if task == TaskName.SINGLE_SYMPTOM_TRIAGE:
             reward = grade_task1(action, self._gold_label)
             feedback = (f"Gold: {self._gold_label}. "
                         f"You chose: {action.task1.triage_level.value if action.task1 else 'N/A'}. "
@@ -92,7 +92,7 @@ class OpenEnv:
                 )
             )
 
-        elif task == TaskName.URGENT_TRIAGE:
+        elif task == TaskName.DIFFERENTIAL_DIAGNOSIS:
             reward = grade_task2(action, self._gold_label)
             feedback = f"Score: {reward.total:.2f}"
             obs = TriageObservation(
@@ -129,13 +129,11 @@ class OpenEnv:
 
     def grade(self, task_id: str, observations: any, action: PatientAction) -> float:
         """Standalone grade method — return clipped score."""
-        # Use the provided action (observations are context but not strictly used in current logic)
-        if task_id == "emergency_triage":
+        if task_id == "single_symptom_triage":
             reward = grade_task1(action, self._gold_label)
-        elif task_id == "urgent_triage":
+        elif task_id == "differential_diagnosis":
             reward = grade_task2(action, self._gold_label)
         else:
             reward = grade_task3(action, self._gold_label)
         
-        # Clip to strictly (0.01, 0.99)
-        return max(0.01, min(0.99, float(reward.total)))
+        return max(0.001, min(0.999, float(reward.total)))

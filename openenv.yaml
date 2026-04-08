@@ -6,15 +6,15 @@ description: >
   critical care resources under uncertainty.
 author: ""
 tasks:
-  - name: emergency_triage
+  - name: single_symptom_triage
     difficulty: easy
     description: Classify a single-complaint patient into emergent/urgent/non-urgent
     max_steps: 1
-  - name: urgent_triage
+  - name: differential_diagnosis
     difficulty: medium
     description: Propose differential diagnoses and next steps for a complex presentation
     max_steps: 1
-  - name: routine_triage
+  - name: icu_resource_allocation
     difficulty: hard
     description: Allocate the single available ICU bed among three critical patients
     max_steps: 1
