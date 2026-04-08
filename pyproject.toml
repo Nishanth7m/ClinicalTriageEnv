@@ -1,23 +1,36 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "clinicaltriageenv"
+name = "clinical-triage-env"
 version = "0.1.0"
-description = "A Clinical Triage Environment for OpenEnv"
+description = "Clinical Triage RL Environment for OpenEnv Hackathon"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
+authors = [
+    { name = "Nishanth", email = "nishanthselvam9944@gmail.com" }
+]
 dependencies = [
     "numpy",
     "pandas",
-    "scikit-learn",
-    "torch",
-    "openenv",
+    "gymnasium",
     "fastapi",
-    "uvicorn[standard]",
-    "pydantic>=2.0",
+    "uvicorn",
+    "requests",
     "openai",
     "python-dotenv",
-    "requests"
+    "pydantic>=2.0",
+    "openenv"
 ]
+
+[project.scripts]
+openenv-env = "inference:main"
+
+[tool.setuptools]
+py-modules = ["inference"]
+
+# This section is often required by Meta's OpenEnv validator
+[tool.openenv]
+entrypoint = "inference.py"
+mode = "multi-mode"
