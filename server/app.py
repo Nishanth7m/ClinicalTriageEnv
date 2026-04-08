@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 from env.environment import ClinicalEnvironment
@@ -8,7 +9,7 @@ env = ClinicalEnvironment()
 
 @app.get("/")
 def root():
-    return {"status": "ok", "env": "ClinicalTriageEnv"}
+    return {"status": "Clinical Triage Env Running", "env": "ClinicalTriageEnv"}
 
 @app.post("/reset", response_model=TriageObservation)
 def reset():
@@ -21,3 +22,10 @@ def step(action: PatientAction):
 @app.get("/state", response_model=ClinicalState)
 def state():
     return env.state()
+
+def main():
+    # This makes the main() function callable by the validator
+    uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()
