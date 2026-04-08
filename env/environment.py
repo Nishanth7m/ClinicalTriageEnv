@@ -16,7 +16,7 @@ TASK_SEQUENCE = [
     TaskName.ROUTINE_TRIAGE,
 ]
 
-class ClinicalEnvironment:
+class OpenEnv:
     def __init__(self):
         self._state: ClinicalState | None = None
         self._current_patient = None
@@ -127,11 +127,9 @@ class ClinicalEnvironment:
             raise RuntimeError("Call reset() first")
         return self._state
 
-    def grade(self, task_id: str, action: PatientAction) -> float:
+    def grade(self, task_id: str, observations: any, action: PatientAction) -> float:
         """Standalone grade method — return clipped score."""
-        # This mirrors the logic in step() but is more direct for validators
-        # Note: We need some state for gold_label, assuming it was set during a reset call 
-        # that the validator makes. 
+        # Use the provided action (observations are context but not strictly used in current logic)
         if task_id == "emergency_triage":
             reward = grade_task1(action, self._gold_label)
         elif task_id == "urgent_triage":
@@ -139,5 +137,5 @@ class ClinicalEnvironment:
         else:
             reward = grade_task3(action, self._gold_label)
         
-        # Already clipped in models.py, but doubling down for safety
+        # Clip to strictly (0.01, 0.99)
         return max(0.01, min(0.99, float(reward.total)))

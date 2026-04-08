@@ -1,10 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
-from env.environment import ClinicalEnvironment, TASK_SEQUENCE
+from env.environment import OpenEnv, TASK_SEQUENCE
 from env.models import PatientAction, TriageObservation, ClinicalState
 
 app = FastAPI(title="ClinicalTriageEnv", version="0.1.0")
-env = ClinicalEnvironment()
+env = OpenEnv()
 
 @app.get("/")
 def root():
