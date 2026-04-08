@@ -11,9 +11,9 @@ from env.scenarios import get_task1_scenario, get_task2_scenario, get_task3_scen
 from env.graders import grade_task1, grade_task2, grade_task3
 
 TASK_SEQUENCE = [
-    TaskName.SINGLE_SYMPTOM_TRIAGE,
-    TaskName.DIFFERENTIAL_DIAGNOSIS,
-    TaskName.ICU_RESOURCE_ALLOCATION,
+    TaskName.EMERGENCY_TRIAGE,
+    TaskName.URGENT_TRIAGE,
+    TaskName.ROUTINE_TRIAGE,
 ]
 
 class ClinicalEnvironment:
@@ -22,6 +22,10 @@ class ClinicalEnvironment:
         self._current_patient = None
         self._gold_label: str | None = None
         self._task_index: int = 0
+
+    def list_tasks(self) -> list[str]:
+        """Return all task IDs — required by validator."""
+        return [t.value for t in TASK_SEQUENCE]
 
     def reset(self) -> TriageObservation:
         obs = self._start_task()
@@ -32,7 +36,7 @@ class ClinicalEnvironment:
     def _start_task(self) -> TriageObservation:
         task = TASK_SEQUENCE[self._task_index]
 
-        if task == TaskName.SINGLE_SYMPTOM_TRIAGE:
+        if task == TaskName.EMERGENCY_TRIAGE:
             patient, gold = get_task1_scenario()
             self._current_patient = patient
             self._gold_label = gold
@@ -41,7 +45,7 @@ class ClinicalEnvironment:
                 task1=Task1Observation(patient=patient)
             )
 
-        elif task == TaskName.DIFFERENTIAL_DIAGNOSIS:
+        elif task == TaskName.URGENT_TRIAGE:
             patient, gold = get_task2_scenario()
             self._current_patient = patient
             self._gold_label = gold
@@ -50,7 +54,7 @@ class ClinicalEnvironment:
                 task2=Task2Observation(patient=patient)
             )
 
-        else:  # ICU_RESOURCE_ALLOCATION
+        else:  # ROUTINE_TRIAGE
             patients, gold = get_task3_scenario()
             self._current_patient = patients
             self._gold_label = gold
@@ -75,7 +79,7 @@ class ClinicalEnvironment:
 
         task = self._state.current_task
 
-        if task == TaskName.SINGLE_SYMPTOM_TRIAGE:
+        if task == TaskName.EMERGENCY_TRIAGE:
             reward = grade_task1(action, self._gold_label)
             feedback = (f"Gold: {self._gold_label}. "
                         f"You chose: {action.task1.triage_level.value if action.task1 else 'N/A'}. "
@@ -88,7 +92,7 @@ class ClinicalEnvironment:
                 )
             )
 
-        elif task == TaskName.DIFFERENTIAL_DIAGNOSIS:
+        elif task == TaskName.URGENT_TRIAGE:
             reward = grade_task2(action, self._gold_label)
             feedback = f"Score: {reward.total:.2f}"
             obs = TriageObservation(
@@ -122,3 +126,18 @@ class ClinicalEnvironment:
         if self._state is None:
             raise RuntimeError("Call reset() first")
         return self._state
+
+    def grade(self, task_id: str, action: PatientAction) -> float:
+        """Standalone grade method — return clipped score."""
+        # This mirrors the logic in step() but is more direct for validators
+        # Note: We need some state for gold_label, assuming it was set during a reset call 
+        # that the validator makes. 
+        if task_id == "emergency_triage":
+            reward = grade_task1(action, self._gold_label)
+        elif task_id == "urgent_triage":
+            reward = grade_task2(action, self._gold_label)
+        else:
+            reward = grade_task3(action, self._gold_label)
+        
+        # Already clipped in models.py, but doubling down for safety
+        return max(0.01, min(0.99, float(reward.total)))

@@ -37,9 +37,9 @@ def agent_act(obs: dict) -> dict:
     task_name = obs.get("task_name", "")
     content   = json.dumps(obs, indent=2)
 
-    if task_name == "single_symptom_triage":
+    if task_name == "emergency_triage":
         schema = '{"task1": {"triage_level": "emergent|urgent|non_urgent", "rationale": "..."}}'
-    elif task_name == "differential_diagnosis":
+    elif task_name == "urgent_triage":
         schema = '{"task2": {"primary_diagnosis": "...", "triage_level": "emergent", "reasoning": "..."}}'
     else:
         schema = '{"task3": {"allocation_decisions": [{"patient_id": "P001", "allocated_icu": true, "priority_rank": 1, "justification": "..."}]}}'
@@ -68,7 +68,7 @@ def main():
     # REQUIRED BY JUDGES: Start Tag
     print("[START]")
     
-    tasks = ["single_symptom_triage", "differential_diagnosis", "icu_resource_allocation"]
+    tasks = ["emergency_triage", "urgent_triage", "routine_triage"]
     
     for task_name in tasks:
         try:

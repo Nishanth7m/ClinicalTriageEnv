@@ -9,9 +9,9 @@ class TriageLevel(str, Enum):
     NON_URGENT = "non_urgent"
 
 class TaskName(str, Enum):
-    SINGLE_SYMPTOM_TRIAGE   = "single_symptom_triage"
-    DIFFERENTIAL_DIAGNOSIS  = "differential_diagnosis"
-    ICU_RESOURCE_ALLOCATION = "icu_resource_allocation"
+    EMERGENCY_TRIAGE = "emergency_triage"
+    URGENT_TRIAGE    = "urgent_triage"
+    ROUTINE_TRIAGE   = "routine_triage"
 
 class VitalSigns(BaseModel):
     heart_rate_bpm:       int   = Field(..., ge=0, le=300)
