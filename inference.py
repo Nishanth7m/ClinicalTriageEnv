@@ -87,10 +87,10 @@ def main():
                     break
             
             # REQUIRED BY JUDGES: Structured Step Log
-            print(f"[STEP] task_name={task_name} score={score:.2f}")
+            print(f"[STEP] task_name={task_name} score={score:.4f}")
 
         except Exception:
-            print(f"[STEP] task_name={task_name} score=0.00")
+            print(f"[STEP] task_name={task_name} score=0.0100")
 
     # REQUIRED BY JUDGES: End Tag
     print("[END]")

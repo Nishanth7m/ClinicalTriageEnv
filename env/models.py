@@ -52,7 +52,11 @@ class RewardBreakdown(BaseModel):
     def compute_total(self) -> float:
         raw = (self.triage_accuracy + self.emergent_penalty
                + self.guideline_bonus + self.reasoning_quality)
-        self.total = max(-1.0, min(1.0, raw))
+        # Clip to [-1, 1] first, then rescale to (0.01, 0.99) so the
+        # validator never sees an exact 0 or 1 boundary value.
+        clipped = max(-1.0, min(1.0, raw))
+        # Map [-1, 1] → [0.01, 0.99]
+        self.total = round(0.01 + (clipped + 1.0) * 0.49, 4)
         return self.total
 
 class Task1Action(BaseModel):
