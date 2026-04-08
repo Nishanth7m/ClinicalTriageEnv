@@ -16,12 +16,16 @@ TASK_SEQUENCE = [
     TaskName.ICU_RESOURCE_ALLOCATION,
 ]
 
-class ClinicalEnvironment:
+class OpenEnv:
     def __init__(self):
         self._state: ClinicalState | None = None
         self._current_patient = None
         self._gold_label: str | None = None
         self._task_index: int = 0
+
+    def list_tasks(self) -> list[str]:
+        """Return all task IDs — required by validator."""
+        return [t.value for t in TASK_SEQUENCE]
 
     def reset(self) -> TriageObservation:
         obs = self._start_task()
@@ -122,3 +126,14 @@ class ClinicalEnvironment:
         if self._state is None:
             raise RuntimeError("Call reset() first")
         return self._state
+
+    def grade(self, task_id: str, observations: any, action: PatientAction) -> float:
+        """Standalone grade method — return clipped score."""
+        if task_id == "single_symptom_triage":
+            reward = grade_task1(action, self._gold_label)
+        elif task_id == "differential_diagnosis":
+            reward = grade_task2(action, self._gold_label)
+        else:
+            reward = grade_task3(action, self._gold_label)
+        
+        return max(0.001, min(0.999, float(reward.total)))

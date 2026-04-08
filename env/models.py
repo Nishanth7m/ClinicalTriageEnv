@@ -52,7 +52,8 @@ class RewardBreakdown(BaseModel):
     def compute_total(self) -> float:
         raw = (self.triage_accuracy + self.emergent_penalty
                + self.guideline_bonus + self.reasoning_quality)
-        self.total = max(-1.0, min(1.0, raw))
+        # Clip to strictly (0.001, 0.999) per updated hackathon rules
+        self.total = max(0.001, min(0.999, raw))
         return self.total
 
 class Task1Action(BaseModel):
