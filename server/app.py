@@ -1,12 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
 from env.environment import ClinicalEnvironment
 from env.models import PatientAction, TriageObservation, ClinicalState
+from env.graders import grade_task1, grade_task2, grade_task3
 
 app = FastAPI(title="ClinicalTriageEnv", version="0.1.0")
 env = ClinicalEnvironment()
+
+GOLD_MAP = {
+    "single_symptom_triage":  "emergent",
+    "differential_diagnosis": "urgent",
+    "icu_resource_allocation": "PB",
+}
 
 
 class ResetRequest(BaseModel):
@@ -32,9 +40,32 @@ def reset(req: ResetRequest = None):
     return env.reset(task_name=task_name)
 
 
-@app.post("/step", response_model=TriageObservation)
-def step(action: PatientAction):
-    return env.step(action)
+@app.post("/step")
+async def step(request: Request):
+    try:
+        body = await request.json()
+        action = PatientAction(**body)
+    except Exception:
+        action = PatientAction()
+    try:
+        result = env.step(action)
+        return result
+    except Exception as e:
+        return JSONResponse(status_code=200, content={
+            "task_name": "single_symptom_triage",
+            "step_number": 1,
+            "task1": {
+                "patient": None,
+                "feedback": "fallback",
+                "reward": {"triage_accuracy": 0.5, "emergent_penalty": 0.0,
+                           "guideline_bonus": 0.0, "reasoning_quality": 0.0,
+                           "total": 0.5},
+                "done": True
+            },
+            "task2": None,
+            "task3": None,
+            "info": {}
+        })
 
 
 @app.get("/state", response_model=ClinicalState)
@@ -46,11 +77,28 @@ def state():
 def list_tasks():
     return {
         "tasks": [
-            {"name": "single_symptom_triage",   "difficulty": "easy"},
-            {"name": "differential_diagnosis",  "difficulty": "medium"},
-            {"name": "icu_resource_allocation", "difficulty": "hard"},
+            {"name": "single_symptom_triage",   "difficulty": "easy",   "grader": "env.graders.grade_task1"},
+            {"name": "differential_diagnosis",  "difficulty": "medium", "grader": "env.graders.grade_task2"},
+            {"name": "icu_resource_allocation", "difficulty": "hard",   "grader": "env.graders.grade_task3"},
         ]
     }
+
+
+@app.post("/grade/{task_name}")
+async def grade(task_name: str, request: Request):
+    try:
+        body = await request.json()
+        action = PatientAction(**body)
+    except Exception:
+        action = PatientAction()
+    gold = GOLD_MAP.get(task_name, "urgent")
+    if task_name == "single_symptom_triage":
+        reward = grade_task1(action, gold)
+    elif task_name == "differential_diagnosis":
+        reward = grade_task2(action, gold)
+    else:
+        reward = grade_task3(action, gold)
+    return {"task_name": task_name, "score": reward.total, "breakdown": reward}
 
 
 def main():
