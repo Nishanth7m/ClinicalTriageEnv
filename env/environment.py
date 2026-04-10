@@ -1,8 +1,10 @@
 """
 ClinicalEnvironment — implements OpenEnv step() / reset() / state() interface.
+reset() accepts an optional task_name so the validator can test each task independently.
 """
 from __future__ import annotations
 import uuid
+from typing import Optional
 from env.models import (
     PatientAction, TriageObservation, ClinicalState, TaskName,
     Task1Observation, Task2Observation, Task3Observation
@@ -16,24 +18,27 @@ TASK_SEQUENCE = [
     TaskName.ICU_RESOURCE_ALLOCATION,
 ]
 
-class OpenEnv:
+TASK_NAME_MAP = {
+    "single_symptom_triage":   TaskName.SINGLE_SYMPTOM_TRIAGE,
+    "differential_diagnosis":  TaskName.DIFFERENTIAL_DIAGNOSIS,
+    "icu_resource_allocation": TaskName.ICU_RESOURCE_ALLOCATION,
+}
+
+
+class ClinicalEnvironment:
     def __init__(self):
-        self._state: ClinicalState | None = None
+        self._state: Optional[ClinicalState] = None
         self._current_patient = None
-        self._gold_label: str | None = None
+        self._gold_label: Optional[str] = None
         self._task_index: int = 0
 
-    def list_tasks(self) -> list[str]:
-        """Return all task IDs — required by validator."""
-        return [t.value for t in TASK_SEQUENCE]
-
-    def reset(self) -> TriageObservation:
-        obs = self._start_task()
-        # Increment so the next /reset call yields the next task in the sequence
-        self._task_index = (self._task_index + 1) % len(TASK_SEQUENCE)
-        return obs
+    def reset(self, task_name: Optional[str] = None) -> TriageObservation:
+        if task_name and task_name in TASK_NAME_MAP:
+            self._task_index = list(TASK_NAME_MAP.keys()).index(task_name)
+        return self._start_task()
 
     def _start_task(self) -> TriageObservation:
+        self._task_index = self._task_index % len(TASK_SEQUENCE)
         task = TASK_SEQUENCE[self._task_index]
 
         if task == TaskName.SINGLE_SYMPTOM_TRIAGE:
@@ -54,7 +59,7 @@ class OpenEnv:
                 task2=Task2Observation(patient=patient)
             )
 
-        else:  # ICU_RESOURCE_ALLOCATION
+        else:
             patients, gold = get_task3_scenario()
             self._current_patient = patients
             self._gold_label = gold
@@ -75,15 +80,17 @@ class OpenEnv:
 
     def step(self, action: PatientAction) -> TriageObservation:
         if self._state is None:
-            raise RuntimeError("Call reset() before step()")
+            self.reset()
 
         task = self._state.current_task
 
         if task == TaskName.SINGLE_SYMPTOM_TRIAGE:
             reward = grade_task1(action, self._gold_label)
-            feedback = (f"Gold: {self._gold_label}. "
-                        f"You chose: {action.task1.triage_level.value if action.task1 else 'N/A'}. "
-                        f"Score: {reward.total:.2f}")
+            feedback = (
+                f"Gold: {self._gold_label}. "
+                f"Predicted: {action.task1.triage_level.value if action.task1 else 'N/A'}. "
+                f"Score: {reward.total:.4f}"
+            )
             obs = TriageObservation(
                 task_name=task, step_number=1,
                 task1=Task1Observation(
@@ -94,7 +101,7 @@ class OpenEnv:
 
         elif task == TaskName.DIFFERENTIAL_DIAGNOSIS:
             reward = grade_task2(action, self._gold_label)
-            feedback = f"Score: {reward.total:.2f}"
+            feedback = f"Score: {reward.total:.4f}"
             obs = TriageObservation(
                 task_name=task, step_number=1,
                 task2=Task2Observation(
@@ -105,7 +112,7 @@ class OpenEnv:
 
         else:
             reward = grade_task3(action, self._gold_label)
-            feedback = f"Gold ICU: {self._gold_label}. Score: {reward.total:.2f}"
+            feedback = f"Gold ICU patient: {self._gold_label}. Score: {reward.total:.4f}"
             obs = TriageObservation(
                 task_name=task, step_number=1,
                 task3=Task3Observation(
@@ -119,21 +126,11 @@ class OpenEnv:
         self._state.last_reward_breakdown = reward
         self._state.task_scores[task.value] = reward.total
         self._state.is_done = True
+        self._task_index = (self._task_index + 1) % len(TASK_SEQUENCE)
 
         return obs
 
     def state(self) -> ClinicalState:
         if self._state is None:
-            raise RuntimeError("Call reset() first")
+            self.reset()
         return self._state
-
-    def grade(self, task_id: str, observations: any, action: PatientAction) -> float:
-        """Standalone grade method — return clipped score."""
-        if task_id == "single_symptom_triage":
-            reward = grade_task1(action, self._gold_label)
-        elif task_id == "differential_diagnosis":
-            reward = grade_task2(action, self._gold_label)
-        else:
-            reward = grade_task3(action, self._gold_label)
-        
-        return max(0.001, min(0.999, float(reward.total)))

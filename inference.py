@@ -1,6 +1,5 @@
 """
-Baseline inference script v2 — ClinicalTriageEnv
-Runs the agent against all 3 tasks and prints scores.
+Baseline inference script — ClinicalTriageEnv
 Must complete in < 20 min on 2 vCPU / 8 GB RAM.
 """
 import os, json, time, sys
@@ -49,11 +48,11 @@ FALLBACKS = {
                 {"patient_id": "PA", "allocated_icu": False, "priority_rank": 2,
                  "justification": "Septic shock with high lactate but lower immediate mortality risk than PB"},
                 {"patient_id": "PB", "allocated_icu": True, "priority_rank": 1,
-                 "justification": "Massive STEMI with cardiogenic shock and SpO2 88% requires immediate ICU intervention"},
+                 "justification": "Massive STEMI with cardiogenic shock and SpO2 88% requires immediate ICU"},
                 {"patient_id": "PC", "allocated_icu": False, "priority_rank": 3,
-                 "justification": "Severe asthma can be managed in HDU with nebulisers and steroids"}
+                 "justification": "Severe asthma managed in HDU with nebulisers and steroids"}
             ],
-            "overall_reasoning": "PB has massive STEMI with cardiogenic shock SpO2 88% and troponin 18.5 requiring immediate ICU for balloon pump and cath lab intervention. PA has septic shock but elevated creatinine 3.8 limits intervention. PC severe asthma managed with nebulisers and steroids in HDU. SOFA scoring and AHA guidelines prioritise cardiac arrest prevention.",
+            "overall_reasoning": "PB has massive STEMI with cardiogenic shock SpO2 88% and troponin 18.5 requiring immediate ICU for balloon pump and cath lab. PA has septic shock but creatinine 3.8 limits intervention. PC severe asthma managed in HDU. SOFA scoring and AHA guidelines prioritise cardiac arrest prevention.",
             "cited_guidelines": ["SOFA Score", "AHA STEMI 2022"]
         }
     }
@@ -119,13 +118,12 @@ def agent_act(obs: dict) -> dict:
                 return json.loads(text.strip())
 
             except RateLimitError:
-                wait = 2 ** attempt
-                time.sleep(wait)
+                time.sleep(2 ** attempt)
             except json.JSONDecodeError:
                 continue
 
     except Exception as e:
-        print(f"[ERROR] LLM call failed, using fallback: {e}", file=sys.stderr)
+        print(f"[ERROR] LLM failed, using fallback: {e}", file=sys.stderr)
 
     return fallback
 
@@ -138,7 +136,6 @@ def main():
         "differential_diagnosis":  "task2",
         "icu_resource_allocation": "task3",
     }
-
     task_names = list(task_map.keys())
 
     for task_idx in range(3):
@@ -157,7 +154,7 @@ def main():
                 score = max(0.001, min(0.999, float(raw)))
 
         except Exception as e:
-            print(f"[ERROR] Task {task_idx+1} exception: {e}", file=sys.stderr)
+            print(f"[ERROR] Task {task_idx+1}: {e}", file=sys.stderr)
             score = 0.1
 
         print(f"[STEP] task_name={tname} score={score:.4f}")
