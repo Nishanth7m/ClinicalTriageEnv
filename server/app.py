@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
+import uvicorn
 from env.environment import ClinicalEnvironment
 from env.models import PatientAction, TriageObservation, ClinicalState
 
@@ -50,3 +51,11 @@ def list_tasks():
             {"name": "icu_resource_allocation", "difficulty": "hard"},
         ]
     }
+
+
+def main():
+    uvicorn.run(app, host="0.0.0.0", port=7860)
+
+
+if __name__ == "__main__":
+    main()
