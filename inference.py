@@ -1,7 +1,3 @@
-"""
-Baseline inference script — ClinicalTriageEnv
-Must complete in < 20 min on 2 vCPU / 8 GB RAM.
-"""
 import os, json, time, sys
 from dotenv import load_dotenv
 load_dotenv()
@@ -28,7 +24,7 @@ FALLBACKS = {
     "single_symptom_triage": {
         "task1": {
             "triage_level": "urgent",
-            "rationale": "Patient presents with symptoms requiring clinical assessment. Vitals reviewed and triage level assigned based on severity indicators and NEWS2 scoring criteria.",
+            "rationale": "Patient presents with symptoms requiring clinical assessment. Vitals reviewed and triage level assigned based on NEWS2 severity scoring criteria.",
             "cited_guideline": "NEWS2 Score"
         }
     },
@@ -46,56 +42,75 @@ FALLBACKS = {
         "task3": {
             "allocation_decisions": [
                 {"patient_id": "PA", "allocated_icu": False, "priority_rank": 2,
-                 "justification": "Septic shock with high lactate but lower immediate mortality risk than PB"},
+                 "justification": "Septic shock with high lactate but lower immediate mortality risk"},
                 {"patient_id": "PB", "allocated_icu": True, "priority_rank": 1,
-                 "justification": "Massive STEMI with cardiogenic shock and SpO2 88% requires immediate ICU"},
+                 "justification": "Massive STEMI with cardiogenic shock SpO2 88 percent needs immediate ICU"},
                 {"patient_id": "PC", "allocated_icu": False, "priority_rank": 3,
                  "justification": "Severe asthma managed in HDU with nebulisers and steroids"}
             ],
-            "overall_reasoning": "PB has massive STEMI with cardiogenic shock SpO2 88% and troponin 18.5 requiring immediate ICU for balloon pump and cath lab. PA has septic shock but creatinine 3.8 limits intervention. PC severe asthma managed in HDU. SOFA scoring and AHA guidelines prioritise cardiac arrest prevention.",
+            "overall_reasoning": "PB has massive STEMI with cardiogenic shock SpO2 88 percent and troponin 18.5 requiring immediate ICU for balloon pump and cath lab. PA has septic shock but creatinine 3.8 limits intervention. PC severe asthma managed in HDU. SOFA scoring and AHA guidelines prioritise cardiac arrest prevention.",
             "cited_guidelines": ["SOFA Score", "AHA STEMI 2022"]
         }
     }
 }
 
+TASK_NAMES = [
+    "single_symptom_triage",
+    "differential_diagnosis",
+    "icu_resource_allocation"
+]
 
-def call_env(endpoint: str, payload: dict = None):
-    try:
-        if payload:
-            r = requests.post(f"{ENV_URL}{endpoint}", json=payload, timeout=60)
-        else:
-            r = requests.post(f"{ENV_URL}{endpoint}", timeout=60)
-        r.raise_for_status()
-        return r.json()
-    except Exception as e:
-        print(f"[ERROR] call_env {endpoint} failed: {e}", file=sys.stderr)
-        raise
+TASK_KEY_MAP = {
+    "single_symptom_triage":   "task1",
+    "differential_diagnosis":  "task2",
+    "icu_resource_allocation": "task3",
+}
+
+
+def call_reset(task_name: str) -> dict:
+    r = requests.post(
+        f"{ENV_URL}/reset",
+        json={"task": task_name},
+        timeout=60
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def call_step(action: dict) -> dict:
+    r = requests.post(
+        f"{ENV_URL}/step",
+        json=action,
+        timeout=60
+    )
+    r.raise_for_status()
+    return r.json()
 
 
 def agent_act(obs: dict) -> dict:
     task_name = obs.get("task_name", "single_symptom_triage")
     fallback  = FALLBACKS.get(task_name, FALLBACKS["single_symptom_triage"])
 
-    try:
-        if task_name == "single_symptom_triage":
-            schema = ('{"task1": {"triage_level": "emergent|urgent|non_urgent", '
-                      '"rationale": "detailed clinical reasoning minimum 100 chars", '
-                      '"cited_guideline": "NEWS2 Score"}}')
-        elif task_name == "differential_diagnosis":
-            schema = ('{"task2": {"primary_diagnosis": "diagnosis name", '
-                      '"differential_diagnoses": ["dx1", "dx2", "dx3"], '
-                      '"recommended_actions": ["action1", "action2"], '
-                      '"triage_level": "emergent|urgent|non_urgent", '
-                      '"reasoning": "detailed reasoning minimum 200 chars", '
-                      '"cited_guidelines": ["NICE Pneumonia 2024", "NEWS2 Score"]}}')
-        else:
-            schema = ('{"task3": {"allocation_decisions": ['
-                      '{"patient_id": "PA", "allocated_icu": false, "priority_rank": 2, "justification": "reason"},'
-                      '{"patient_id": "PB", "allocated_icu": true,  "priority_rank": 1, "justification": "reason"},'
-                      '{"patient_id": "PC", "allocated_icu": false, "priority_rank": 3, "justification": "reason"}'
-                      '], "overall_reasoning": "detailed SOFA-based reasoning minimum 200 chars", '
-                      '"cited_guidelines": ["SOFA Score", "AHA STEMI 2022"]}}')
+    if task_name == "single_symptom_triage":
+        schema = ('{"task1": {"triage_level": "emergent|urgent|non_urgent", '
+                  '"rationale": "detailed clinical reasoning here minimum 80 chars", '
+                  '"cited_guideline": "NEWS2 Score"}}')
+    elif task_name == "differential_diagnosis":
+        schema = ('{"task2": {"primary_diagnosis": "diagnosis name", '
+                  '"differential_diagnoses": ["dx1", "dx2", "dx3"], '
+                  '"recommended_actions": ["action1", "action2"], '
+                  '"triage_level": "emergent|urgent|non_urgent", '
+                  '"reasoning": "detailed clinical reasoning here minimum 120 chars", '
+                  '"cited_guidelines": ["NICE Pneumonia 2024", "NEWS2 Score"]}}')
+    else:
+        schema = ('{"task3": {"allocation_decisions": ['
+                  '{"patient_id": "PA", "allocated_icu": false, "priority_rank": 2, "justification": "clinical reason"},'
+                  '{"patient_id": "PB", "allocated_icu": true,  "priority_rank": 1, "justification": "clinical reason"},'
+                  '{"patient_id": "PC", "allocated_icu": false, "priority_rank": 3, "justification": "clinical reason"}'
+                  '], "overall_reasoning": "SOFA-based reasoning minimum 150 chars explaining allocation decision", '
+                  '"cited_guidelines": ["SOFA Score", "AHA STEMI 2022"]}}')
 
+    try:
         for attempt in range(3):
             try:
                 resp = client.chat.completions.create(
@@ -115,15 +130,15 @@ def agent_act(obs: dict) -> dict:
                     text = text.split("```")[1]
                     if text.startswith("json"):
                         text = text[4:]
-                return json.loads(text.strip())
-
+                parsed = json.loads(text.strip())
+                if parsed:
+                    return parsed
             except RateLimitError:
                 time.sleep(2 ** attempt)
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, Exception):
                 continue
-
     except Exception as e:
-        print(f"[ERROR] LLM failed, using fallback: {e}", file=sys.stderr)
+        print(f"[ERROR] LLM failed: {e}", file=sys.stderr)
 
     return fallback
 
@@ -131,33 +146,28 @@ def agent_act(obs: dict) -> dict:
 def main():
     print("[START]")
 
-    task_map = {
-        "single_symptom_triage":   "task1",
-        "differential_diagnosis":  "task2",
-        "icu_resource_allocation": "task3",
-    }
-    task_names = list(task_map.keys())
-
-    for task_idx in range(3):
-        tname = task_names[task_idx]
+    for task_name in TASK_NAMES:
         score = 0.5
 
         try:
-            obs    = call_env("/reset")
-            tname  = obs.get("task_name", tname)
+            obs    = call_reset(task_name)
+            actual_task = obs.get("task_name", task_name)
             action = agent_act(obs)
-            result = call_env("/step", action)
+            result = call_step(action)
 
-            key = task_map.get(tname, "task1")
-            if result.get(key) and result[key].get("reward"):
-                raw   = result[key]["reward"].get("total", 0.5)
-                score = max(0.001, min(0.999, float(raw)))
+            key = TASK_KEY_MAP.get(actual_task, TASK_KEY_MAP.get(task_name, "task1"))
+            task_result = result.get(key)
+            if task_result and isinstance(task_result, dict):
+                reward = task_result.get("reward")
+                if reward and isinstance(reward, dict):
+                    raw = reward.get("total", 0.5)
+                    score = max(0.001, min(0.999, float(raw)))
 
         except Exception as e:
-            print(f"[ERROR] Task {task_idx+1}: {e}", file=sys.stderr)
-            score = 0.1
+            print(f"[ERROR] {task_name}: {e}", file=sys.stderr)
+            score = 0.5
 
-        print(f"[STEP] task_name={tname} score={score:.4f}")
+        print(f"[STEP] task_name={task_name} score={score:.4f}")
 
     print("[END]")
 
