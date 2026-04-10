@@ -77,9 +77,9 @@ def state():
 def list_tasks():
     return {
         "tasks": [
-            {"name": "single_symptom_triage",   "difficulty": "easy",   "grader": "env.graders.grade_task1"},
-            {"name": "differential_diagnosis",  "difficulty": "medium", "grader": "env.graders.grade_task2"},
-            {"name": "icu_resource_allocation", "difficulty": "hard",   "grader": "env.graders.grade_task3"},
+            {"name": "single_symptom_triage",   "difficulty": "easy",   "grader": "env.graders.openenv_grade_task1"},
+            {"name": "differential_diagnosis",  "difficulty": "medium", "grader": "env.graders.openenv_grade_task2"},
+            {"name": "icu_resource_allocation", "difficulty": "hard",   "grader": "env.graders.openenv_grade_task3"},
         ]
     }
 
