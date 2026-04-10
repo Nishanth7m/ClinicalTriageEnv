@@ -1,0 +1,39 @@
+﻿Waiting for Space to be ready...
+Space is ready!
+
+Test: POST https://nishanthdev7-clinicaltriageenv.hf.space/grade/single_symptom_triage
+Status Code: 404
+Response:
+{
+  "detail": "Not Found"
+}
+
+Test: POST https://nishanthdev7-clinicaltriageenv.hf.space/grade/differential_diagnosis
+Status Code: 200
+Response:
+{
+  "task_name": "differential_diagnosis",
+  "score": 0.05,
+  "breakdown": {
+    "triage_accuracy": 0.0,
+    "emergent_penalty": 0.0,
+    "guideline_bonus": 0.0,
+    "reasoning_quality": 0.0,
+    "total": 0.05
+  }
+}
+
+Test: POST https://nishanthdev7-clinicaltriageenv.hf.space/grade/icu_resource_allocation
+Status Code: 200
+Response:
+{
+  "task_name": "icu_resource_allocation",
+  "score": 0.05,
+  "breakdown": {
+    "triage_accuracy": 0.0,
+    "emergent_penalty": 0.0,
+    "guideline_bonus": 0.0,
+    "reasoning_quality": 0.0,
+    "total": 0.05
+  }
+}

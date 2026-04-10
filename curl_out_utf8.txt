@@ -1,0 +1,37 @@
+﻿{
+  "task_name": "differential_diagnosis",
+  "step_number": 0,
+  "task1": null,
+  "task2": {
+    "patient": {
+      "patient_id": "P003",
+      "age_years": 22,
+      "sex": "F",
+      "chief_complaint": "sprained ankle after sport",
+      "symptoms": [
+        "ankle pain",
+        "mild swelling",
+        "difficulty weight-bearing"
+      ],
+      "vitals": {
+        "heart_rate_bpm": 72,
+        "systolic_bp_mmhg": 120,
+        "diastolic_bp_mmhg": 78,
+        "spo2_percent": 99.0,
+        "respiratory_rate_rpm": 14,
+        "temperature_celsius": 36.6,
+        "glasgow_coma_scale": 15
+      },
+      "labs": [],
+      "history": [],
+      "medications": [],
+      "allergies": [],
+      "arrival_mode": "walk_in"
+    },
+    "feedback": null,
+    "reward": null,
+    "done": false
+  },
+  "task3": null,
+  "info": {}
+}

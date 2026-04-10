@@ -1,0 +1,237 @@
+﻿Waiting for Space to be ready...
+Space is ready!
+
+--- Testing task: single_symptom_triage ---
+Status Code: 200
+Response JSON:
+{
+  "task_name": "single_symptom_triage",
+  "step_number": 0,
+  "task1": {
+    "patient": {
+      "patient_id": "P005",
+      "age_years": 45,
+      "sex": "F",
+      "chief_complaint": "abdominal pain and vomiting since morning",
+      "symptoms": [
+        "right lower quadrant pain",
+        "nausea",
+        "vomiting",
+        "low-grade fever"
+      ],
+      "vitals": {
+        "heart_rate_bpm": 88,
+        "systolic_bp_mmhg": 126,
+        "diastolic_bp_mmhg": 80,
+        "spo2_percent": 98.0,
+        "respiratory_rate_rpm": 16,
+        "temperature_celsius": 37.9,
+        "glasgow_coma_scale": 15
+      },
+      "labs": [
+        {
+          "test_name": "wbc",
+          "value": 13.1,
+          "unit": "10^9/L",
+          "reference_lo": 4.5,
+          "reference_hi": 11.0
+        }
+      ],
+      "history": [],
+      "medications": [],
+      "allergies": [],
+      "arrival_mode": "walk_in"
+    },
+    "feedback": null,
+    "reward": null,
+    "done": false
+  },
+  "task2": null,
+  "task3": null,
+  "info": {}
+}
+
+--- Testing task: differential_diagnosis ---
+Status Code: 200
+Response JSON:
+{
+  "task_name": "differential_diagnosis",
+  "step_number": 0,
+  "task1": null,
+  "task2": {
+    "patient": {
+      "patient_id": "P001",
+      "age_years": 58,
+      "sex": "M",
+      "chief_complaint": "crushing chest pain radiating to left arm",
+      "symptoms": [
+        "chest pain",
+        "diaphoresis",
+        "nausea",
+        "shortness of breath"
+      ],
+      "vitals": {
+        "heart_rate_bpm": 110,
+        "systolic_bp_mmhg": 88,
+        "diastolic_bp_mmhg": 60,
+        "spo2_percent": 94.0,
+        "respiratory_rate_rpm": 22,
+        "temperature_celsius": 37.1,
+        "glasgow_coma_scale": 15
+      },
+      "labs": [
+        {
+          "test_name": "troponin_I",
+          "value": 2.4,
+          "unit": "ng/mL",
+          "reference_lo": 0.0,
+          "reference_hi": 0.04
+        }
+      ],
+      "history": [
+        "hypertension",
+        "type 2 diabetes"
+      ],
+      "medications": [
+        "metformin",
+        "lisinopril"
+      ],
+      "allergies": [],
+      "arrival_mode": "ambulance"
+    },
+    "feedback": null,
+    "reward": null,
+    "done": false
+  },
+  "task3": null,
+  "info": {}
+}
+
+--- Testing task: icu_resource_allocation ---
+Status Code: 200
+Response JSON:
+{
+  "task_name": "icu_resource_allocation",
+  "step_number": 0,
+  "task1": null,
+  "task2": null,
+  "task3": {
+    "patients": [
+      {
+        "patient_id": "PA",
+        "age_years": 72,
+        "sex": "M",
+        "chief_complaint": "septic shock post-op",
+        "symptoms": [
+          "hypotension",
+          "fever",
+          "altered consciousness",
+          "oliguria"
+        ],
+        "vitals": {
+          "heart_rate_bpm": 128,
+          "systolic_bp_mmhg": 74,
+          "diastolic_bp_mmhg": 44,
+          "spo2_percent": 91.0,
+          "respiratory_rate_rpm": 28,
+          "temperature_celsius": 39.4,
+          "glasgow_coma_scale": 10
+        },
+        "labs": [
+          {
+            "test_name": "lactate",
+            "value": 6.2,
+            "unit": "mmol/L",
+            "reference_lo": 0.5,
+            "reference_hi": 2.0
+          },
+          {
+            "test_name": "creatinine",
+            "value": 3.8,
+            "unit": "mg/dL",
+            "reference_lo": 0.7,
+            "reference_hi": 1.3
+          }
+        ],
+        "history": [
+          "CKD",
+          "hypertension"
+        ],
+        "medications": [],
+        "allergies": [],
+        "arrival_mode": "ambulance"
+      },
+      {
+        "patient_id": "PB",
+        "age_years": 54,
+        "sex": "F",
+        "chief_complaint": "massive STEMI",
+        "symptoms": [
+          "chest pain",
+          "diaphoresis",
+          "pulmonary oedema"
+        ],
+        "vitals": {
+          "heart_rate_bpm": 116,
+          "systolic_bp_mmhg": 82,
+          "diastolic_bp_mmhg": 52,
+          "spo2_percent": 88.0,
+          "respiratory_rate_rpm": 26,
+          "temperature_celsius": 36.9,
+          "glasgow_coma_scale": 14
+        },
+        "labs": [
+          {
+            "test_name": "troponin_I",
+            "value": 18.5,
+            "unit": "ng/mL",
+            "reference_lo": 0.0,
+            "reference_hi": 0.04
+          }
+        ],
+        "history": [
+          "diabetes"
+        ],
+        "medications": [
+          "insulin"
+        ],
+        "allergies": [],
+        "arrival_mode": "ambulance"
+      },
+      {
+        "patient_id": "PC",
+        "age_years": 38,
+        "sex": "M",
+        "chief_complaint": "severe asthma exacerbation",
+        "symptoms": [
+          "wheeze",
+          "accessory muscle use",
+          "cannot complete sentences"
+        ],
+        "vitals": {
+          "heart_rate_bpm": 118,
+          "systolic_bp_mmhg": 134,
+          "diastolic_bp_mmhg": 88,
+          "spo2_percent": 89.0,
+          "respiratory_rate_rpm": 32,
+          "temperature_celsius": 37.2,
+          "glasgow_coma_scale": 15
+        },
+        "labs": [],
+        "history": [
+          "asthma"
+        ],
+        "medications": [
+          "salbutamol"
+        ],
+        "allergies": [],
+        "arrival_mode": "ambulance"
+      }
+    ],
+    "available_icu_beds": 1,
+    "feedback": null,
+    "reward": null,
+    "done": false
+  },
+  "info": {}
+}
